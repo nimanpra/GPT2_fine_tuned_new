@@ -33,7 +33,8 @@ tokenizer = GPT2Tokenizer.from_pretrained(
 
 if torch.cuda.is_available():
     torch.cuda.empty_cache()
-    model_from_huggingface.cuda()
+    device = torch.device("gpu")
+    model_from_huggingface.to(device)
 else:
     device = torch.device("cpu")
     model_from_huggingface.to(device)
