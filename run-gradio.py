@@ -12,8 +12,8 @@ Check out the library on [github](https://github.com/gradio-app/gradio-UI) and s
 
 ### Installs and Imports
 """
-gradio_user_name = "nimanpra"
-api_key = "api_pDPmTOWqnAMaDypwsRbRsdHscZLlANIiTj"
+huggingface_user_name = "nimanpra"
+huggingface_api_key = "api_pDPmTOWqnAMaDypwsRbRsdHscZLlANIiTj"
 
 # Commented out IPython magic to ensure Python compatibility.
 import torch
@@ -22,25 +22,30 @@ from transformers import GPT2Tokenizer, GPT2LMHeadModel
 
 """### Loading the model and creating the generate function"""
 
+available_models = {}
+
+model_from_huggingface = GPT2LMHeadModel.from_pretrained(
+    f"{huggingface_user_name}/Fine_Tuned_Spiritual", use_auth_token=huggingface_api_key
+)
+tokenizer = GPT2Tokenizer.from_pretrained(
+    f"{huggingface_user_name}/Fine_Tuned_Spiritual", use_auth_token=huggingface_api_key
+)
+
+if torch.cuda.is_available():
+    torch.cuda.empty_cache()
+    model_from_huggingface.cuda()
+else:
+    device = torch.device("cpu")
+    model_from_huggingface.to(device)
+
+available_models["Model_Spiritual"] = [model_from_huggingface, tokenizer]
+
 
 def generate_text_from_saved_model(genre, topic):
+    model_from_huggingface = available_models[f"Model_{genre}"][0]
+    tokenizer = available_models[f"Model_{genre}"][1]
 
-    model_from_drive = GPT2LMHeadModel.from_pretrained(
-        f"{gradio_user_name}/Fine_Tuned_{genre}", use_auth_token=api_key
-    )
-    tokenizer = GPT2Tokenizer.from_pretrained(
-        f"{gradio_user_name}/Fine_Tuned_{genre}", use_auth_token=api_key
-    )
-
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-        device = torch.device("cuda")
-        model_from_drive.cuda()
-    else:
-        device = torch.device("cpu")
-        model_from_drive.to()
-
-    model_from_drive.eval()
+    model_from_huggingface.eval()
     with torch.no_grad():
         gpt2_generated_text = {}
         prompt = f"<|startoftext|> {topic}"
@@ -48,14 +53,14 @@ def generate_text_from_saved_model(genre, topic):
         generated = torch.tensor(tokenizer.encode(prompt)).unsqueeze(0)
         generated = generated.to(device)
 
-        sample_outputs = model_from_drive.generate(
+        sample_outputs = model_from_huggingface.generate(
             generated,
             do_sample=True,
             top_k=50,
             min_length=768,
             max_length=1024,
             top_p=0.95,
-            num_return_sequences=2,
+            num_return_sequences=1,
         )
         print("got through")
         for i, sample_output in enumerate(sample_outputs):
